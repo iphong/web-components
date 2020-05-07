@@ -9,8 +9,9 @@ WERE ACTUALLY WRITTEN TO BE IMPLEMENTED IN REAL LIFE SCENARIOS.
 This example covers the following topics:
 
 - Component life cycles
+- Stateful component model
 - Input component model
-- Handling touch events
+- Handling touch/pointer events
 - Dynamic events delegation
 - Memory leaks prevention
 - Render optimization
