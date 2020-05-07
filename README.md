@@ -15,4 +15,5 @@ This example covers the following topics:
 - Dynamic events delegation
 - Memory leaks prevention
 - Render optimization
+- SVG graphics
 - Mordern Javascript
