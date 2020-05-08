@@ -7,9 +7,6 @@ class ExampleCardConfigEditor extends HTMLElement {
 	setConfig(config) {
 		this.config = config
 		this.innerHTML = this.render(config)
-		this.querySelector('#entity').value = config.entity
-		this.querySelector('#css').value = config.css
-		this.querySelector('#html').value = config.html
 	}
 
 	handleChange(e) {
@@ -39,17 +36,15 @@ class ExampleCardConfigEditor extends HTMLElement {
 	render(config = this.config) {
 		return `
 			<paper-input label="Entity" id="entity" value="${config.entity}"></paper-input>
-			<ha-code-editor label="CSS" mode="css" id="css"></ha-code-editor>
-			<ha-code-editor label="HTML" mode="html" id="html"></ha-code-editor>
 		`
 	}
 }
 
 class ExampleCard extends HTMLElement {
 
-	// static getConfigElement() {
-	// 	return document.createElement('example-card-config-editor')
-	// }
+	static getConfigElement() {
+		return document.createElement('example-card-config-editor')
+	}
 
 	static getStubConfig() {
 		return {
@@ -60,8 +55,8 @@ class ExampleCard extends HTMLElement {
 		}
 	}
 
-	constructor(props) {
-		super(props)
+	constructor() {
+		super()
 		this.attachShadow({ mode: 'open' })
 	}
 
@@ -69,7 +64,6 @@ class ExampleCard extends HTMLElement {
 		this.config = config
 		this.shadowRoot.innerHTML = config.content
 		this.storedValues = []
-		this.renderState()
 	}
 	set hass(hass) {
 		this._hass = hass
@@ -85,18 +79,18 @@ class ExampleCard extends HTMLElement {
 		const { hass, config } = this
 		if (!hass || !config) return
 		let entity = hass.states[config.entity] || { state: 'unavailable', attributes: {} }
-		this.config.bindings.forEach(({ element, type, bind }, index) => {
-			if (!element || !bind || !type) return
-			this.shadowRoot.querySelectorAll(element).forEach(target => {
+		this.config.bindings.forEach(({ selector, type, bind }, index) => {
+			if (!selector || !bind || !type) return
+			this.shadowRoot.querySelectorAll(selector).forEach(target => {
 				const prevState = this.storedValues[index]
-				let nextState = ''
+				let nextState = null
 				try {
 					const getState = new Function('hass', 'config', 'entity', 'state', 'attr', bind)
 					nextState = getState.call(target, hass, config, entity, entity.state, entity.attributes)
 				} catch (e) {
 					console.log('BINDING --> FAILED', bind)
 				}
-				if (typeof prevState === 'undefined' || nextState !== prevState) {
+				if (prevState == null || nextState !== prevState) {
 					switch (type) {
 						case 'class':
 							prevState && target.classList.remove(prevState)
@@ -107,9 +101,6 @@ class ExampleCard extends HTMLElement {
 							break
 						case 'html':
 							target.innerHTML = nextState
-							break
-						case 'value':
-							target.value = nextState
 							break
 						case 'checked':
 							target.checked = !!nextState
@@ -137,9 +128,9 @@ class ExampleCard extends HTMLElement {
 				entity[service] = data => hass.callService(domain, service, { entity_id, ...data })
 			}
 		}
-		this.config.actions.forEach(({ element, type, call }) => {
-			if (!element || !call || !type) return
-			if (type === e.type && e.target.matches(element)) {
+		this.config.actions.forEach(({ selector, type, call }) => {
+			if (!selector || !call || !type) return
+			if (type === e.type && e.target.matches(selector)) {
 				try {
 					const setState = new Function('hass', 'config', 'entity', call)
 					setState.call(e.target, hass, config, entity)

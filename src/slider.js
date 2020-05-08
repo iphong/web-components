@@ -92,7 +92,7 @@ try {
 
 class TouchSlider extends HTMLElement {
 	static get observedAttributes() {
-		return ['value', 'min', 'max', 'step', 'color']
+		return ['value', 'min', 'max', 'step', 'track:color', 'value:text']
 	}
 
 	get min() {
@@ -122,29 +122,22 @@ class TouchSlider extends HTMLElement {
 		this.setAttribute('step', value)
 	}
 
+	get range() {
+		return this.max - this.min
+	}
+
 	get value() {
-		return this._value
-		return this.hasAttribute('value') ? this.getAttribute('value') : 0
-		let value = parseFloat(this.getAttribute('value') || '0')
-		return constrain(value, this.min, this.max) || 0
+		return this.getAttribute('value') || 0
 	}
 
 	set value(value) {
-		this._value = value
+		this.setValue(value)
+	}
+
+	setValue(value) {
+		value == undefined ? this.removeAttribute('value') :
+		this.setAttribute('value', value)
 		this.render()
-		// this.setAttribute('value', value)
-	}
-
-	get color() {
-		return this.getAttribute('color')
-	}
-
-	set color(value) {
-		this.setAttribute('color', value)
-	}
-
-	get range() {
-		return this.max - this.min
 	}
 
 	constructor(props) {
@@ -156,7 +149,6 @@ class TouchSlider extends HTMLElement {
 		this.$handle = this.shadowRoot.getElementById('handle')
 		this.$track = this.shadowRoot.getElementById('track')
 		this.$track2 = this.shadowRoot.getElementById('track2')
-		this._value = this.getAttribute('value') || 0
 	}
 
 	connectedCallback() {
@@ -167,18 +159,10 @@ class TouchSlider extends HTMLElement {
 
 	disconnectedCallback() {
 		this.shadowRoot.removeEventListener(EVT_START, this.onTouchStart, true)
-		// this.shadowRoot.innerHTML = ''
-		// delete this.$svg
-		// delete this.$style
-		// delete this.$track
-		// delete this.$track2
-		// delete this.$handle
 	}
 
 	attributeChangedCallback() {
-		if (this.isConnected) {
-			this.render()
-		}
+		setTimeout(this.render)
 	}
 
 	onTouchStart = (e) => {
@@ -210,6 +194,7 @@ class TouchSlider extends HTMLElement {
 			if (angle < 0) angle = 360 + angle
 			if (angle >= 40 && angle <= 320) {
 				angle = (angle - 40) / (320 - 40) * this.range
+				console.log('updating value')
 				this.value = (Math.round((angle + this.min) / this.step) * this.step)
 			}
 		}
@@ -222,21 +207,22 @@ class TouchSlider extends HTMLElement {
 		this.dispatchEvent(new Event('change'))
 	}
 
-	render() {
+	render = () => {
 		const start = 40
 		const sweep = (this.value - this.min) / this.range * 280
 		const { path, end: [x, y] } = arc(50, 50, 40, start, sweep, 90)
+		const trackColor = this.getAttribute('track:color') || undefined
 		if (this.$handle) {
 			this.$handle.setAttribute('cx', x)
 			this.$handle.setAttribute('cy', y)
-			this.$handle.style.fill = this.color || undefined
+			this.$handle.style.fill = trackColor
 		}
 		if (this.$track2) {
 			this.$track2.setAttribute('d', path)
-			this.$track2.style.stroke = this.color || undefined
+			this.$track2.style.stroke = trackColor
 		}
-		if (this.$text && this.hasAttribute('valueText')) {
-			this.$text.innerHTML = this.getAttribute('valueText')
+		if (this.$text) {
+			this.$text.innerHTML = this.getAttribute('value:text')
 		}
 	}
 }
