@@ -17,3 +17,11 @@ This example covers the following topics:
 - Render optimization
 - SVG graphics
 - Mordern Javascript
+
+Usage:
+
+```
+<script src="slider.js"></script>
+...
+<ui-touch-slider value="10" min="0" max="100" track:color="lightcoral" value:text="10%" />
+```
