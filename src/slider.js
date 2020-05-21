@@ -1,3 +1,4 @@
+// noinspection CssUnresolvedCustomProperty
 const tmpl = `
 <style type="text/css">
 :host {
@@ -27,8 +28,8 @@ circle {
 }
 </style>
 <svg viewBox="0 0 100 100">
-	<path id="track" d="M 24.288495612538433 80.64177772475912 A 40 40 90 1 1 75.71150438746159 80.64177772475911"></path>
-	<path id="track2" d=""></path>
+	<path d="M 24.288495612538433 80.64177772475912 A 40 40 90 1 1 75.71150438746159 80.64177772475911"></path>
+	<path id="track" d=""></path>
 	<circle id="handle" r="4" cx="50" cy="50"></circle>
 	<text x="50" y="50"></text>
 </svg>
@@ -76,7 +77,7 @@ const arc = (cx, cy, radius, start, sweep, rotate) => {
 let EVT_START, EVT_MOVE, EVT_CANCEL, EVT_END
 
 try {
-	document.createEvent('TouchEvent')
+	// document.createEvent('TouchEvent')
 	EVT_START = 'touchstart'
 	EVT_MOVE = 'touchmove'
 	EVT_CANCEL = 'touchcancel'
@@ -144,11 +145,9 @@ class TouchSlider extends HTMLElement {
 		super(props)
 		this.attachShadow({ mode: 'open' }).innerHTML = tmpl
 		this.$svg = this.shadowRoot.querySelector('svg')
-		this.$style = this.shadowRoot.querySelector('style')
 		this.$text = this.shadowRoot.querySelector('text')
 		this.$handle = this.shadowRoot.getElementById('handle')
 		this.$track = this.shadowRoot.getElementById('track')
-		this.$track2 = this.shadowRoot.getElementById('track2')
 	}
 
 	connectedCallback() {
@@ -164,7 +163,7 @@ class TouchSlider extends HTMLElement {
 	attributeChangedCallback() {
 		setTimeout(this.render)
 	}
-
+	lastChangedValue = null
 	onTouchStart = (e) => {
 		const box = this.bounds = this.$svg.getBoundingClientRect()
 		const ptr = e.touches ? e.touches[0] : e
@@ -173,12 +172,13 @@ class TouchSlider extends HTMLElement {
 			(ptr.clientY - box.top) / box.height * 100 - 50
 		]
 		const [, radius] = position2vector(x, y)
-		if ((e.button == 0 || e.touches) && radius > 25 && e.target.closest('svg')) {
+		if ((e.button == 0 || e.touches) && radius > 35 && radius < 45 && e.target.closest('svg')) {
 			this.dragging = true
 			top.addEventListener(EVT_MOVE, this.onTouchMove, true)
 			top.addEventListener(EVT_CANCEL, this.onTouchEnd, true)
 			top.addEventListener(EVT_END, this.onTouchEnd, true)
-			if (e.cancelable) e.preventDefault()
+			e.stopPropagation()
+			e.preventDefault()
 		}
 	}
 	onTouchMove = e => {
@@ -192,24 +192,30 @@ class TouchSlider extends HTMLElement {
 			let [angle] = position2vector(x, y)
 			angle = angle - 90
 			if (angle < 0) angle = 360 + angle
-			if (angle >= 40 && angle <= 320) {
+			if (angle >= 35 && angle <= 325) {
+				if (angle < 40) angle = 40
+				if (angle > 320) angle = 320
 				angle = (angle - 40) / (320 - 40) * this.range
-				console.log('updating value')
-				this.value = (Math.round((angle + this.min) / this.step) * this.step)
+				this.lastChangedValue = Math.round((angle + this.min) / this.step) * this.step
+				this.render(this.lastChangedValue)
 			}
 		}
 	}
 	onTouchEnd = e => {
 		this.dragging = false
+		if (this.lastChangedValue !== null) {
+			this.setAttribute('value', this.lastChangedValue)
+			this.lastChangedValue = null
+		}
 		top.removeEventListener(EVT_MOVE, this.onTouchMove, true)
 		top.removeEventListener(EVT_CANCEL, this.onTouchEnd, true)
 		top.removeEventListener(EVT_END, this.onTouchEnd, true)
 		this.dispatchEvent(new Event('change'))
 	}
 
-	render = () => {
+	render = (value = this.value) => {
 		const start = 40
-		const sweep = (this.value - this.min) / this.range * 280
+		const sweep = (value - this.min) / this.range * 280
 		const { path, end: [x, y] } = arc(50, 50, 40, start, sweep, 90)
 		const trackColor = this.getAttribute('track:color') || undefined
 		if (this.$handle) {
@@ -217,9 +223,9 @@ class TouchSlider extends HTMLElement {
 			this.$handle.setAttribute('cy', y)
 			this.$handle.style.fill = trackColor
 		}
-		if (this.$track2) {
-			this.$track2.setAttribute('d', path)
-			this.$track2.style.stroke = trackColor
+		if (this.$track) {
+			this.$track.setAttribute('d', path)
+			this.$track.style.stroke = trackColor
 		}
 		if (this.$text) {
 			this.$text.innerHTML = this.getAttribute('value:text')

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 110">
+	<style type="text/css">
+		.st1{fill:none;stroke-width:2;}
+		.st2{fill:#919DA9;}
+		.st4{font-size:18px;}
+		.st5{font-size:6px;}
+		.st6{font-size:4px;}
+		text { text-anchor: middle; alignment-baseline: middle; }
+	</style>
+	<rect id="background" class="st0" width="180" height="110" fill="#2196f317"></rect>
+	<g id="temp" transform="translate(20.000000, 35.000000)">
+		<circle stroke="#D2D8DE" id="circle" class="st1" cx="20" cy="20" r="21"></circle>
+		<text x="20" y="8" class="st2 st3 st6">TEMP</text>
+		<text x="20" y="32" class="st2 st3 st5">ºC</text>
+		<text id="temp-value" x="20" y="21" class="st2 st3 st4">39</text>
+	</g>
+	<g id="humid" transform="translate(70.000000, 35.000000)">
+		<circle stroke="#D2D8DE" id="circle_1_" class="st1" cx="20" cy="20" r="20"></circle>
+		<text x="20" y="8" class="st2 st3 st6">HUMID</text>
+		<text x="20" y="32" class="st2 st3 st5">%</text>
+		<text id="humid-value" x="20" y="21" class="st2 st3 st4">44</text>
+	</g>
+	<g id="light" transform="translate(120.000000, 35.000000)">
+		<circle id="circle_2_" class="st1" cx="20" cy="20" r="21" stroke="gray" opacity="0.2"></circle>
+		<text x="20" y="8" class="st2 st3 st6">LIGHT</text>
+		<text x="20" y="32" class="st2 st3 st5">%</text>
+		<text id="light-value" x="20" y="21" class="st2 st3 st4">--</text>
+	</g>
+</svg>

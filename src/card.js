@@ -1,7 +1,6 @@
-class ExampleCardConfigEditor extends HTMLElement {
+class ConfigEditor extends HTMLElement {
 	constructor() {
 		super()
-		console.log('editor: new instance')
 		this.attachShadow({ mode: 'open' })
 	}
 
@@ -11,48 +10,42 @@ class ExampleCardConfigEditor extends HTMLElement {
 	}
 
 	handleChange = async (e) => {
-		if (e.target.id === 'import') {
-			const reader = new FileReader()
-			const text = await reader.readAsText(e.target.files[0])
-			reader.addEventListener('loadend', e => {
-				const event = new Event('config-changed', {
-					bubbles: true,
-					composed: true
-				})
-				event.detail = {
-					config: {
-						...this.config,
-						content: reader.result
-					}
-				}
-				this.dispatchEvent(event)
-				e.target.value = ''
-			})
-			return
-		}
 		const event = new Event('config-changed', {
 			bubbles: true,
 			composed: true
 		})
 		event.detail = {
-			config: {
-				...this.config,
-				[e.target.id]: e.target.value
-			}
+			config: { ...this.config }
 		}
-		this.dispatchEvent(event)
+		if (e.target.getAttribute('type') === 'file') {
+			const id = e.target.id
+			const reader = new FileReader()
+			await reader.readAsText(e.target.files[0])
+			reader.addEventListener('loadend', e => {
+				e.target.value = ''
+				event.detail.config[id] = reader.result
+				this.dispatchEvent(event)
+			})
+		} else {
+			event.detail.config[e.target.id] = e.target.value
+			this.dispatchEvent(event)
+		}
 	}
 
 	handleClick = e => {
-		const tab = e.target.closest('paper-tab')
-		if (tab) {
-			const href = tab.getAttribute('href')
-			this.shadowRoot.querySelectorAll(href).forEach(content => {
-				for (let child of content.parentNode.children) {
-					child.setAttribute('hidden', 'true')
-				}
-				content.removeAttribute('hidden')
-			})
+		if (e.target.hasAttribute('upload')) {
+			this.shadowRoot.querySelector(`#${e.target.getAttribute('upload')}`).click()
+		} else {
+			const tab = e.target.closest('paper-tab')
+			if (tab) {
+				const href = tab.getAttribute('href')
+				this.shadowRoot.querySelectorAll(href).forEach(content => {
+					for (let child of content.parentNode.children) {
+						child.setAttribute('hidden', 'true')
+					}
+					content.removeAttribute('hidden')
+				})
+			}
 		}
 	}
 
@@ -70,36 +63,33 @@ class ExampleCardConfigEditor extends HTMLElement {
 
 	render(config = this.config) {
 		return `
-<paper-tabs selected="0" scrollable>
-	<paper-tab href="#tab-general">General</paper-tab>
-	<paper-tab href="#tab-design">Design</paper-tab>
-	<paper-tab href="#tab-bindings">Bindings</paper-tab>
-	<paper-tab href="#tab-actions">Actions</paper-tab>
-</paper-tabs>
-<div id="tabs">
-	<div id="tab-general">
-		<paper-input label="Entity" id="entity" value="${config.entity}"></paper-input>
-		
-		<br>
-		<label>Import Design</label>
-		<input label="Import Design" id="import" type="file"></input>
-	</div>
-	<div id="tab-design" hidden>
-		GUI configuration for design 
-		<textarea label="content" id="content" rows="10" style="width: 100%;">${config.content}</textarea>
-	</div>
-	<div id="tab-bindings" hidden>
-		GUI configuration for bindings
-	</div>
-	<div id="tab-actions" hidden>
-		GUI configuration for actions 
-	</div>
-</div>
+			<paper-tabs selected="0" scrollable>
+				<paper-tab href="#tab-general">General</paper-tab>
+				<paper-tab href="#tab-bindings">Bindings</paper-tab>
+				<paper-tab href="#tab-actions">Actions</paper-tab>
+			</paper-tabs>
+			<div id="tabs">
+				<div id="tab-general">
+					<paper-input label="Entity" id="entity" placeholder="Enter entity ID" value="${config.entity}"></paper-input>
+					<p>Once entity is declared. You can access it using variable 'entity' in actions and bindings.</p>
+					<h3>Import / Export</h3>
+					<mwc-button unelevated upload="content">Upload Design</mwc-button>
+					<input id="content" type="file" hidden />
+					<mwc-button unelevated>Export</mwc-button>
+					<mwc-button unelevated>Import</mwc-button>
+				</div>
+				<div id="tab-bindings" hidden>
+					GUI configuration for bindings
+				</div>
+				<div id="tab-actions" hidden>
+					GUI configuration for actions 
+				</div>
+			</div>
 		`
 	}
 }
 
-class ExampleCard extends HTMLElement {
+class DynamicCard extends HTMLElement {
 
 	storedValues = []
 
@@ -118,12 +108,12 @@ class ExampleCard extends HTMLElement {
 	}
 
 	static getConfigElement() {
-		return document.createElement('example-card-config-editor')
+		return document.createElement('dynamic-card-config-editor')
 	}
 
 	static getStubConfig() {
 		return {
-			entity: 'light.bedroom_light',
+			entity: '',
 			content: '',
 			actions: [],
 			bindings: []
@@ -182,20 +172,20 @@ class ExampleCard extends HTMLElement {
 	handleAction = e => {
 		const { hass, config } = this
 		const entity_id = config.entity
-		const entity = { state: 'unavailable', attributes: {}, ...hass.states[entity_id] }
+		const entity = { state: 'unavailable', attributes: {}, ...hass['states'][entity_id] }
 		if (entity_id) {
 			const [domain, id] = entity_id.split('.')
-			const services = hass.services[domain]
+			const services = hass['services'][domain]
 			for (let service in services) {
-				entity[service] = data => hass.callService(domain, service, { entity_id, ...data })
+				entity[service] = data => hass['callService'](domain, service, { entity_id, ...data })
 			}
 		}
-		this.config.actions.forEach(({ selector, type, call }) => {
-			if (!selector || !call || !type) return
+		this.config.actions.forEach(({ selector, type, action }) => {
+			if (!selector || !action || !type) return
 			const target = e.target.closest(selector)
 			if (type === e.type && target) {
 				try {
-					const setState = new Function('hass', 'config', 'entity', call)
+					const setState = new Function('hass', 'config', 'entity', action)
 					setState.call(target, hass, config, entity)
 				} catch (e) {
 
@@ -218,12 +208,12 @@ class ExampleCard extends HTMLElement {
 	}
 }
 
-customElements.define('example-card-config-editor', ExampleCardConfigEditor)
-customElements.define('example-card', ExampleCard)
+customElements.define('dynamic-card-config-editor', ConfigEditor)
+customElements.define('dynamic-card', DynamicCard)
 
 window.customCards = window.customCards || []
 window.customCards.push({
-	type: 'example-card',
-	name: 'Example Card'
+	type: 'dynamic-card',
+	name: 'Dynamic Card'
 })
-console.log('Custom Element: EXAMPLE-CARD.')
+console.log('Custom Element: DYNAMIC-CARD.')
