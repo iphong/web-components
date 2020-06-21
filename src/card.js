@@ -103,6 +103,7 @@ class DynamicCard extends HTMLElement {
 	}
 
 	set hass(hass) {
+		window.hass = hass
 		this._hass = hass
 		this.renderState()
 	}
