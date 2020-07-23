@@ -1,3 +1,22 @@
+const div = document.createElement('div')
+document.body.appendChild(div)
+
+div.innerHTML = `
+<style>
+#logger {
+	position: absolute;
+    z-index: 1000;
+    bottom: 10px;
+    right: 10px;
+    background: grey;
+    border: 1px solid red;
+}
+</style>
+<pre id="logger">
+
+</pre>
+`
+
 class ExampleCardConfigEditor extends HTMLElement {
 	constructor() {
 		super()
